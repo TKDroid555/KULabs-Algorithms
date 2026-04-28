@@ -4,102 +4,130 @@
 
 using namespace std;
 
+char toLower(char c)
+{
+    if (c >= 'A' && c <= 'Z') return c + 32;
+    return c;
+}
+
 struct Table
 {
     vector<vector<char>> tableArray;
     int rows = 0, cols = 0;
 
-    void setTableSize(int a, int b)
+    void setTableSize(int r, int c)
     {
-        rows = a;
-        cols = b;
-        tableArray.resize(a);
-        for (int i = 0; i < a; i++)
-            tableArray[i].resize(b);
+        rows = r;
+        cols = c;
+        tableArray.resize(r);
+        for (int i = 0; i < r; i++)
+            tableArray[i].resize(c);
     }
 
-    bool dfs(int x, int y, string &words, int index, vector<vector<bool>> &visited)
+    bool dfs(int x, int y, string &word, int index, vector<vector<bool>> &visited)
     {
-        if (index == words.size())
+        if (index == word.size())
             return true;
 
         if (x < 0 || y < 0 || x >= rows || y >= cols)
             return false;
 
-        if (visited[x][y] || tableArray[x][y] != words[index])
+        if (visited[x][y] || tableArray[x][y] != word[index])
             return false;
 
         visited[x][y] = true;
 
-        bool found =
-            dfs(x + 1, y, words, index + 1, visited) ||
-            dfs(x - 1, y, words, index + 1, visited) ||
-            dfs(x, y + 1, words, index + 1, visited) ||
-            dfs(x, y - 1, words, index + 1, visited);
+        if (dfs(x - 1, y, word, index + 1, visited) ||
+            dfs(x + 1, y, word, index + 1, visited) ||
+            dfs(x, y - 1, word, index + 1, visited) ||
+            dfs(x, y + 1, word, index + 1, visited))
+        {
+            visited[x][y] = false;
+            return true;
+        }
 
         visited[x][y] = false;
-
-        return found;
+        return false;
     }
 
-    bool exist(string word)
+    pair<int, int> findPos(string word)
     {
         vector<vector<bool>> visited(rows, vector<bool>(cols, false));
-
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < cols; j++)
             {
-                if (tableArray[i][j] == word[0])
-                {
-                    if (dfs(i, j, word, 0, visited))
-                        return true;
-                }
+                if (dfs(i, j, word, 0, visited))
+                    return {i, j};
             }
         }
-        return false;
+        return {-1, -1};
     }
 };
 
-vector<int> findAnswer(Table &table, vector<string> words)
+struct Result
 {
-    vector<int> ans;
-
-    for (int i = 0; i < words.size(); i++)
-    {
-        if (table.exist(words[i]))
-            ans.push_back(i);
-    }
-
-    return ans;
-}
+    int r, c;
+    string originalWord;
+};
 
 int main()
 {
-    int a, b;
-    char tempChar;
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int L, H;
+    if (!(cin >> L >> H)) return 0;
+
     Table table;
-    vector<string> toFind;
+    table.setTableSize(H, L);
 
-    cin >> a >> b;
-    table.setTableSize(a,b);
-
-    for (int i = 0; i < a*b; i++)
+    for (int i = 0; i < H; i++)
     {
-        cin >> tempChar;
-        table.tableArray[i % a][i / a] = tempChar;
+        string rowStr;
+        cin >> rowStr;
+        for (int j = 0; j < L; j++)
+        {
+            table.tableArray[i][j] = toLower(rowStr[j]);
+        }
     }
 
-    string inputToFind;
-    while (cin >> inputToFind)
+    vector<Result> results;
+    string inputWord;
+    while (cin >> inputWord)
     {
-        toFind.push_back(inputToFind);
+        string lowerWord = "";
+        for (char c : inputWord) lowerWord += toLower(c);
+        
+        pair<int, int> pos = table.findPos(lowerWord);
+        if (pos.first != -1)
+        {
+            results.push_back({pos.first, pos.second, inputWord});
+        }
     }
 
-    vector<int> result = findAnswer(table, toFind);
+    for (int i = 0; i < results.size(); i++)
+    {
+        for (int j = i + 1; j < results.size(); j++)
+        {
+            bool swapNeeded = false;
+            if (results[j].r < results[i].r) swapNeeded = true;
+            else if (results[j].r == results[i].r && results[j].c < results[i].c) swapNeeded = true;
+            else if (results[j].r == results[i].r && results[j].c == results[i].c && results[j].originalWord < results[i].originalWord) swapNeeded = true;
 
-    for (int i : result)
-        cout << toFind[i] << endl;
+            if (swapNeeded)
+            {
+                Result temp = results[i];
+                results[i] = results[j];
+                results[j] = temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < results.size(); i++)
+    {
+        cout << results[i].originalWord << endl;
+    }
 
     return 0;
 }
